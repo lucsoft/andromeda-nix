@@ -52,6 +52,31 @@ so it works against whatever nixpkgs you already pin:
 andromeda = pkgs.callPackage "${sources.andromeda-nix}/package.nix" { };
 ```
 
+## Build options
+
+`andromeda-headless` turns the canvas and window features off, and with them
+wgpu, winit, Vulkan and fontconfig. That is a 79.7 MiB closure against 114.0,
+with nothing left but glibc and the gcc runtime. CI builds it, so it comes from
+the cache:
+
+```
+nix run github:lucsoft/andromeda-nix#andromeda-headless -- run script.ts
+```
+
+Anything finer goes through `override`:
+
+```nix
+pkgs.andromeda.override {
+  withCanvas = false;    # wgpu, image, cosmic-text
+  withWindow = false;    # winit
+  withProposals = false; # drops Float16Array, and with it RUSTC_BOOTSTRAP
+}
+```
+
+Upstream pins these in its dependency declarations rather than exposing them as
+features, so the canvas and proposals switches patch a manifest. Only the two
+variants CI builds are cached; other combinations compile locally.
+
 ## Packaging notes
 
 - Only the `andromeda` binary is installed, none of the other bins upstream

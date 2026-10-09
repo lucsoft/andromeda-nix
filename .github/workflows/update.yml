@@ -32,6 +32,14 @@ jobs:
           ./result/bin/andromeda --version
           ./result/bin/andromeda run tests/smoke.ts
 
+      # The headless override patches a manifest, so it can break on its own.
+      - run: nix build .#andromeda-headless -L -o result-headless
+
+      - name: Smoke test (headless)
+        run: |
+          ./result-headless/bin/andromeda --version
+          ./result-headless/bin/andromeda run tests/smoke.ts
+
       - name: Commit
         run: |
           if git diff --quiet; then

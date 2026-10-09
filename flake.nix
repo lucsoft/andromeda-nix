@@ -22,11 +22,19 @@
 
       packages = forAllSystems (pkgs: rec {
         andromeda = pkgs.callPackage ./package.nix { };
+
+        # Built by CI too, so headless users get it from the cache instead of
+        # compiling wgpu and winit for nothing.
+        andromeda-headless = andromeda.override {
+          withCanvas = false;
+          withWindow = false;
+        };
+
         default = andromeda;
       });
 
       checks = forAllSystems (pkgs: {
-        inherit (self.packages.${pkgs.stdenv.hostPlatform.system}) andromeda;
+        inherit (self.packages.${pkgs.stdenv.hostPlatform.system}) andromeda andromeda-headless;
       });
 
       formatter = forAllSystems (pkgs: pkgs.nixfmt-tree);

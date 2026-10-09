@@ -8,8 +8,27 @@
   libxkbcommon,
   wayland,
   vulkan-loader,
-  xorg,
+  libx11,
+  libxcursor,
+  libxi,
+  libxrandr,
+  # Upstream pins these in its dependency declarations instead of exposing
+  # them as features of the CLI crate, so switching one off patches a manifest.
+  withCanvas ? true,
+  withWindow ? true,
+  withProposals ? true,
 }:
+
+let
+  needsGpu = withCanvas || withWindow;
+
+  gpuLibs =
+    lib.optionals needsGpu [ vulkan-loader ]
+    ++ lib.optionals withWindow [
+      libxkbcommon
+      wayland
+    ];
+in
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "andromeda";
@@ -31,10 +50,22 @@ rustPlatform.buildRustPackage (finalAttrs: {
     };
   };
 
-  # The CLI enables andromeda-runtime/proposals, which pulls in
-  # nova_vm/proposal-float16array and so `feature(f16)`, which stable rustc
-  # rejects. Upstream builds on nightly.
-  env.RUSTC_BOOTSTRAP = 1;
+  # replace-fail, so an upstream reshuffle breaks the build instead of
+  # quietly handing back the defaults.
+  postPatch =
+    lib.optionalString (!withCanvas) ''
+      substituteInPlace Cargo.toml --replace-fail '"canvas",' ""
+    ''
+    + lib.optionalString (!withProposals) ''
+      substituteInPlace crates/cli/Cargo.toml --replace-fail '"proposals",' ""
+    '';
+
+  # window is the CLI crate's only default feature.
+  buildNoDefaultFeatures = !withWindow;
+
+  # proposals reaches nova_vm/proposal-float16array and so `feature(f16)`,
+  # which stable rustc rejects. Upstream builds on nightly.
+  env = lib.optionalAttrs withProposals { RUSTC_BOOTSTRAP = 1; };
 
   cargoBuildFlags = [
     "-p" "andromeda"
@@ -54,17 +85,21 @@ rustPlatform.buildRustPackage (finalAttrs: {
     rustPlatform.bindgenHook
   ];
 
-  buildInputs = [
-    libffi
-    fontconfig
-    libxkbcommon
-    wayland
-    vulkan-loader
-    xorg.libX11
-    xorg.libXcursor
-    xorg.libXi
-    xorg.libXrandr
-  ];
+  buildInputs =
+    [ libffi ]
+    ++ lib.optionals withCanvas [ fontconfig ]
+    ++ gpuLibs
+    ++ lib.optionals withWindow [
+      libx11
+      libxcursor
+      libxi
+      libxrandr
+    ];
+
+  # winit and wgpu dlopen their backends, so the linker never records them.
+  postFixup = lib.optionalString needsGpu ''
+    patchelf --add-rpath ${lib.makeLibraryPath gpuLibs} $out/bin/andromeda
+  '';
 
   meta = {
     description = "JS/TS runtime powered by Nova, with no transpilation";

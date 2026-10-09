@@ -23,9 +23,6 @@
       packages = forAllSystems (pkgs: rec {
         andromeda = pkgs.callPackage ./package.nix { };
 
-        # Built by CI too, so headless users get it from the cache instead of
-        # compiling wgpu and winit for nothing. Skips the tests because they
-        # are the same ones the full build already ran.
         andromeda-headless =
           (andromeda.override {
             withCanvas = false;

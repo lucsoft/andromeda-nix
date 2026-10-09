@@ -29,16 +29,13 @@ jobs:
           name: andromeda-nix
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      # The cargo suite runs as the derivation's checkPhase.
       - run: nix build .#andromeda -L
 
-      # A missing shared library only fails at exec time.
       - name: Smoke test
         run: |
           ./result/bin/andromeda --version
           ./result/bin/andromeda run tests/smoke.ts
 
-      # The headless override patches a manifest, so it can break on its own.
       - run: nix build .#andromeda-headless -L -o result-headless
 
       - name: Smoke test (headless)

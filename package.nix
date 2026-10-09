@@ -12,8 +12,6 @@
   libxcursor,
   libxi,
   libxrandr,
-  # Upstream pins these in its dependency declarations instead of exposing
-  # them as features of the CLI crate, so switching one off patches a manifest.
   withCanvas ? true,
   withWindow ? true,
   withProposals ? true,
@@ -41,7 +39,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
     hash = "sha256-NFhUy+hqvr9bv/tRu62zdtJGIdIxV09LPInhWXZfTrs=";
   };
 
-  # Both crates come out of one git checkout, so they share one hash.
+  # Both crates come from one git checkout and share a hash.
   cargoLock = {
     lockFile = "${finalAttrs.src}/Cargo.lock";
     outputHashes = {
@@ -50,8 +48,6 @@ rustPlatform.buildRustPackage (finalAttrs: {
     };
   };
 
-  # replace-fail, so an upstream reshuffle breaks the build instead of
-  # quietly handing back the defaults.
   postPatch =
     lib.optionalString (!withCanvas) ''
       substituteInPlace Cargo.toml --replace-fail '"canvas",' ""
@@ -60,11 +56,9 @@ rustPlatform.buildRustPackage (finalAttrs: {
       substituteInPlace crates/cli/Cargo.toml --replace-fail '"proposals",' ""
     '';
 
-  # window is the CLI crate's only default feature.
   buildNoDefaultFeatures = !withWindow;
 
-  # proposals reaches nova_vm/proposal-float16array and so `feature(f16)`,
-  # which stable rustc rejects. Upstream builds on nightly.
+  # proposals -> nova_vm/proposal-float16array -> feature(f16), rejected by stable rustc.
   env = lib.optionalAttrs withProposals { RUSTC_BOOTSTRAP = 1; };
 
   cargoBuildFlags = [
@@ -96,7 +90,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
       libxrandr
     ];
 
-  # winit and wgpu dlopen their backends, so the linker never records them.
+  # wgpu and winit dlopen their backends.
   postFixup = lib.optionalString needsGpu ''
     patchelf --add-rpath ${lib.makeLibraryPath gpuLibs} $out/bin/andromeda
   '';

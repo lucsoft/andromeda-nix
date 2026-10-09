@@ -24,7 +24,6 @@ jobs:
       - name: Bump to the newest upstream release
         run: nix-shell -p curl jq nix-prefetch-git perl --run ./update.sh
 
-      # Nothing is pushed unless this passes.
       - run: nix build .#andromeda -L
 
       - name: Smoke test
@@ -32,7 +31,6 @@ jobs:
           ./result/bin/andromeda --version
           ./result/bin/andromeda run tests/smoke.ts
 
-      # The headless override patches a manifest, so it can break on its own.
       - run: nix build .#andromeda-headless -L -o result-headless
 
       - name: Smoke test (headless)

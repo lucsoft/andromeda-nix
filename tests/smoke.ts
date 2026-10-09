@@ -1,5 +1,3 @@
-// Runs against the built binary in CI.
-
 const greet = (name: string): string => `hello, ${name}`;
 console.log(greet("andromeda"));
 

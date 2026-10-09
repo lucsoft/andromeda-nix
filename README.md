@@ -3,13 +3,10 @@
 Nix packaging for [Andromeda](https://tryandromeda.dev), a JS/TS runtime built
 on [Nova](https://trynova.dev) that runs TypeScript without transpiling it.
 
-Not affiliated with upstream. A weekly workflow picks up new releases and only
-pushes if the package builds and the binary runs.
+Not affiliated with upstream. A weekly workflow bumps the package to new
+upstream releases.
 
 ## Binary cache
-
-Building this takes a while (wgpu, winit, a bundled SQLite, LTO). Point Nix at
-the cache first:
 
 ```nix
 nix.settings = {
@@ -26,8 +23,6 @@ On non-NixOS, the same two lines go into `/etc/nix/nix.conf` as
 
 ## Use it
 
-Try it without installing anything:
-
 ```
 nix run github:lucsoft/andromeda-nix -- run script.ts
 ```
@@ -43,10 +38,9 @@ As a flake input:
 }
 ```
 
-There is an `overlays.default` if you would rather have `pkgs.andromeda`.
+`overlays.default` adds `pkgs.andromeda`.
 
-Flakes are not required. `package.nix` takes nothing but a `callPackage` scope,
-so it works against whatever nixpkgs you already pin:
+Flakes are not required. `package.nix` takes nothing but a `callPackage` scope:
 
 ```nix
 andromeda = pkgs.callPackage "${sources.andromeda-nix}/package.nix" { };
@@ -55,9 +49,8 @@ andromeda = pkgs.callPackage "${sources.andromeda-nix}/package.nix" { };
 ## Build options
 
 `andromeda-headless` turns the canvas and window features off, and with them
-wgpu, winit, Vulkan and fontconfig. That is a 79.7 MiB closure against 114.0,
-with nothing left but glibc and the gcc runtime. CI builds it, so it comes from
-the cache:
+wgpu, winit, Vulkan and fontconfig. The closure is 79.7 MiB against 114.0, with
+nothing left but glibc and the gcc runtime. CI builds and caches it:
 
 ```
 nix run github:lucsoft/andromeda-nix#andromeda-headless -- run script.ts

@@ -1,0 +1,45 @@
+name: Update
+
+on:
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: cachix/install-nix-action@v31
+
+      - uses: cachix/cachix-action@v16
+        with:
+          name: andromeda-nix
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Bump to the newest upstream release
+        run: nix-shell -p curl jq nix-prefetch-git perl --run ./update.sh
+
+      # Nothing is pushed unless this passes.
+      - run: nix build .#andromeda -L
+
+      - name: Smoke test
+        run: |
+          ./result/bin/andromeda --version
+          ./result/bin/andromeda run tests/smoke.ts
+
+      - name: Commit
+        run: |
+          if git diff --quiet; then
+            echo "nothing to commit"
+            exit 0
+          fi
+          version=$(sed -n 's/^  version = "\(.*\)";$/\1/p' package.nix)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "andromeda: $version"
+          git push

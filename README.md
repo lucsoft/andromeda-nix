@@ -84,4 +84,5 @@ variants CI builds are cached; other combinations compile locally.
 - `RUSTC_BOOTSTRAP=1`, because the CLI enables `andromeda-runtime/proposals`,
   which pulls in `nova_vm/proposal-float16array` and so `feature(f16)`, which
   stable rustc rejects. Upstream builds on nightly.
-- Linux only. Untested elsewhere.
+- Linux only, x86_64 and aarch64. CI builds and caches both. Upstream also
+  supports macOS and Windows, which this is not tested on.
